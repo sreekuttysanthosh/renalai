@@ -395,46 +395,39 @@ def explain_prediction(model_name, model, input_row):
     return waterfall
 
 
+
 # ============================================================
 # 8. HEADER
 # ============================================================
 
 st.markdown(
     """
-    <div style="
-        background: linear-gradient(110deg, #E4F3F0, #F8FBFA);
-        padding: 30px;
-        border-radius: 16px;
-        border-left: 6px solid #16877C;
-        margin-bottom: 20px;
-    ">
+<div style="background: linear-gradient(110deg, #E4F3F0, #F8FBFA);
+            padding: 30px;
+            border-radius: 16px;
+            border-left: 6px solid #16877C;
+            margin-bottom: 20px;">
 
-        <div style="
-            color: #155E59;
-            font-size: 36px;
-            font-weight: 750;
-            letter-spacing: -1px;
-        ">
-            Renal AI
-        </div>
-
-        <div style="
-            color: #426C68;
-            font-size: 18px;
-            margin-top: 8px;
-        ">
-            Explainable Machine Learning for Kidney Marker Screening
-        </div>
-
-        <div style="
-            color: #58716E;
-            font-size: 13px;
-            margin-top: 12px;
-        ">
-            NHANES 2017–March 2020 | Healthcare Analytics | Research Prototype
-        </div>
-
+    <div style="color: #155E59;
+                font-size: 36px;
+                font-weight: 750;
+                letter-spacing: -1px;">
+        Renal AI
     </div>
+
+    <div style="color: #426C68;
+                font-size: 18px;
+                margin-top: 8px;">
+        Explainable Machine Learning for Kidney Marker Screening
+    </div>
+
+    <div style="color: #58716E;
+                font-size: 13px;
+                margin-top: 12px;">
+        NHANES 2017–March 2020 | Healthcare Analytics | Research Prototype
+    </div>
+
+</div>
     """,
     unsafe_allow_html=True,
 )
