@@ -2,24 +2,11 @@
 from pathlib import Path
 
 import joblib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import shap
 import streamlit as st
-
-from sklearn.metrics import (
-    ConfusionMatrixDisplay,
-    PrecisionRecallDisplay,
-    RocCurveDisplay,
-    accuracy_score,
-    average_precision_score,
-    confusion_matrix,
-    f1_score,
-    precision_score,
-    recall_score,
-    roc_auc_score,
-)
+import matplotlib.pyplot as plt
 
 
 # ============================================================
@@ -30,18 +17,18 @@ st.set_page_config(
     page_title="Renal AI | Kidney Marker Screening",
     page_icon="🩺",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="collapsed"
 )
 
 
 # ============================================================
-# 2. CUSTOM UI DESIGN
+# 2. RENAL AI THEME
+# No custom HTML is used in this application.
 # ============================================================
 
 st.markdown(
     """
     <style>
-
     .stApp {
         background-color: #F7FAFA;
     }
@@ -56,30 +43,25 @@ st.markdown(
         color: #155E59 !important;
     }
 
-    h1 {
-        font-weight: 750 !important;
-        letter-spacing: -1px;
-    }
-
     [data-testid="stMetric"] {
-        background: #FFFFFF;
+        background-color: white;
         border: 1px solid #DCEBE8;
         padding: 18px;
         border-radius: 12px;
     }
 
-    .stButton > button,
-    .stFormSubmitButton > button {
+    div.stButton > button,
+    div.stFormSubmitButton > button {
         background-color: #16877C;
         color: white;
         border: none;
-        border-radius: 9px;
-        padding: 0.55rem 1.5rem;
+        border-radius: 8px;
         font-weight: 600;
+        min-height: 42px;
     }
 
-    .stButton > button:hover,
-    .stFormSubmitButton > button:hover {
+    div.stButton > button:hover,
+    div.stFormSubmitButton > button:hover {
         background-color: #116A62;
         color: white;
         border: none;
@@ -91,50 +73,24 @@ st.markdown(
         border-radius: 10px;
     }
 
-    [data-testid="stForm"] {
-        background: #FFFFFF;
-        border: 1px solid #DCEBE8;
-        padding: 22px;
-        border-radius: 14px;
-    }
-
     hr {
         border-color: #DCEBE8;
     }
-
     </style>
     """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True
 )
 
 
 # ============================================================
-# 3. PROJECT PATHS AND SETTINGS
+# 3. PROJECT PATHS
 # ============================================================
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 MODEL_PATH = PROJECT_ROOT / "models" / "all_models.joblib"
 
-TEST_DATA_PATH = (
-    PROJECT_ROOT / "data" / "processed" / "model_test.csv"
-)
-
-TRAIN_DATA_PATH = (
-    PROJECT_ROOT / "data" / "processed" / "model_train.csv"
-)
-
-SHAP_PATH = (
-    PROJECT_ROOT / "reports" / "shap_global_importance.csv"
-)
-
 THRESHOLD = 0.50
-
-MODEL_NAMES = [
-    "Logistic Regression",
-    "Random Forest",
-    "XGBoost",
-]
 
 FEATURE_NAMES = [
     "RIDAGEYR",
@@ -145,12 +101,18 @@ FEATURE_NAMES = [
     "BPXOSY1",
     "BPXODI1",
     "smoking",
-    "insulin",
+    "insulin"
+]
+
+MODEL_NAMES = [
+    "Logistic Regression",
+    "Random Forest",
+    "XGBoost"
 ]
 
 
 # ============================================================
-# 4. LOAD ALL THREE MODELS
+# 4. LOAD ALL THREE SAVED MODEL PIPELINES
 # ============================================================
 
 @st.cache_resource
@@ -158,319 +120,113 @@ def load_models():
 
     if not MODEL_PATH.exists():
         raise FileNotFoundError(
-            "all_models.joblib was not found inside the models folder."
+            f"Model file not found: {MODEL_PATH}"
         )
 
-    models = joblib.load(MODEL_PATH)
+    saved_models = joblib.load(MODEL_PATH)
 
-    if not isinstance(models, dict):
+    if not isinstance(saved_models, dict):
         raise ValueError(
-            "The saved model file must contain a dictionary of three pipelines."
+            "all_models.joblib must contain a dictionary "
+            "of the three fitted model pipelines."
         )
 
-    if set(models.keys()) != set(MODEL_NAMES):
+    missing_models = [
+        name for name in MODEL_NAMES
+        if name not in saved_models
+    ]
+
+    if missing_models:
         raise ValueError(
-            "The saved file does not contain all three expected models."
+            "Missing models: " + ", ".join(missing_models)
         )
 
-    for name, model in models.items():
+    for name in MODEL_NAMES:
+
+        model = saved_models[name]
 
         if not hasattr(model, "named_steps"):
             raise ValueError(
                 f"{name} is not a complete preprocessing pipeline."
             )
 
+        if not hasattr(model, "predict_proba"):
+            raise ValueError(
+                f"{name} does not support probability prediction."
+            )
+
         if list(model.feature_names_in_) != FEATURE_NAMES:
             raise ValueError(
-                f"{name} has unexpected input features."
+                f"{name} does not expect the correct nine features."
             )
 
-    return models
+    return saved_models
 
 
-# ============================================================
-# 5. LOAD HELD-OUT TEST DATA
-# ============================================================
+try:
+    models = load_models()
 
-@st.cache_data
-def load_test_data():
+except Exception as error:
 
-    if not TEST_DATA_PATH.exists():
-        raise FileNotFoundError(
-            "data/processed/model_test.csv was not found."
-        )
+    st.error(f"Could not load the model pipelines: {error}")
 
-    data = pd.read_csv(TEST_DATA_PATH)
-
-    required_columns = set(FEATURE_NAMES) | {
-        "SEQN",
-        "kidney_marker",
-    }
-
-    missing = required_columns.difference(data.columns)
-
-    if missing:
-        raise ValueError(
-            "Missing test-data columns: "
-            + ", ".join(sorted(missing))
-        )
-
-    if len(data) != 302:
-        raise ValueError(
-            f"Expected 302 test participants, found {len(data)}."
-        )
-
-    if data["SEQN"].duplicated().any():
-        raise ValueError(
-            "Duplicate participant IDs found in test data."
-        )
-
-    if data["kidney_marker"].isna().any():
-        raise ValueError(
-            "Missing kidney_marker values found in test data."
-        )
-
-    X_test = data[FEATURE_NAMES].copy()
-
-    y_test = data["kidney_marker"].astype(int)
-
-    return X_test, y_test
-
-
-# ============================================================
-# 6. MODEL EVALUATION
-# ============================================================
-
-def evaluate_models(models, X_test, y_test):
-
-    results = []
-
-    predictions = {}
-
-    for name, model in models.items():
-
-        positive_index = list(model.classes_).index(1)
-
-        probabilities = model.predict_proba(X_test)[
-            :, positive_index
-        ]
-
-        predicted = (
-            probabilities >= THRESHOLD
-        ).astype(int)
-
-        tn, fp, fn, tp = confusion_matrix(
-            y_test,
-            predicted,
-            labels=[0, 1],
-        ).ravel()
-
-        specificity = (
-            tn / (tn + fp)
-            if (tn + fp) > 0
-            else 0.0
-        )
-
-        results.append(
-            {
-                "Model": name,
-                "Accuracy": accuracy_score(
-                    y_test, predicted
-                ),
-                "Precision": precision_score(
-                    y_test, predicted, zero_division=0
-                ),
-                "Sensitivity": recall_score(
-                    y_test, predicted, zero_division=0
-                ),
-                "Specificity": specificity,
-                "F1-score": f1_score(
-                    y_test, predicted, zero_division=0
-                ),
-                "ROC-AUC": roc_auc_score(
-                    y_test, probabilities
-                ),
-                "PR-AUC": average_precision_score(
-                    y_test, probabilities
-                ),
-            }
-        )
-
-        predictions[name] = {
-            "probabilities": probabilities,
-            "predictions": predicted,
-        }
-
-    results_df = pd.DataFrame(results)
-
-    return results_df, predictions
-
-
-# ============================================================
-# 7. SHAP EXPLANATION
-# ============================================================
-
-def explain_prediction(model_name, model, input_row):
-
-    preprocessor = model.named_steps["preprocessor"]
-
-    classifier = model.named_steps["classifier"]
-
-    transformed_input = preprocessor.transform(input_row)
-
-    if hasattr(transformed_input, "toarray"):
-        transformed_input = transformed_input.toarray()
-
-    # Tree models
-    if model_name in ["Random Forest", "XGBoost"]:
-
-        explainer = shap.TreeExplainer(classifier)
-
-    # Logistic Regression
-    else:
-
-        if TRAIN_DATA_PATH.exists():
-
-            background_data = pd.read_csv(
-                TRAIN_DATA_PATH
-            )[FEATURE_NAMES].copy()
-
-        else:
-
-            X_test, _ = load_test_data()
-
-            background_data = X_test.copy()
-
-        # Use a small representative background sample.
-        background_data = background_data.sample(
-            n=min(50, len(background_data)),
-            random_state=42,
-        )
-
-        transformed_background = preprocessor.transform(
-            background_data
-        )
-
-        if hasattr(transformed_background, "toarray"):
-            transformed_background = (
-                transformed_background.toarray()
-            )
-
-        explainer = shap.LinearExplainer(
-            classifier,
-            transformed_background,
-        )
-
-    explanation = explainer(transformed_input)
-
-    values = np.asarray(explanation.values)
-
-    base_values = np.asarray(explanation.base_values)
-
-    positive_index = list(model.classes_).index(1)
-
-    if values.ndim == 3:
-
-        local_values = values[0, :, positive_index]
-
-        local_base = base_values.reshape(
-            -1, len(model.classes_)
-        )[0, positive_index]
-
-    else:
-
-        local_values = values[0]
-
-        local_base = base_values.reshape(-1)[0]
-
-    feature_names = preprocessor.get_feature_names_out()
-
-    waterfall = shap.Explanation(
-        values=local_values,
-        base_values=local_base,
-        data=np.asarray(transformed_input)[0],
-        feature_names=feature_names,
+    st.info(
+        "Check that models/all_models.joblib exists and contains "
+        "the three verified fitted pipelines."
     )
 
-    return waterfall
-
+    st.stop()
 
 
 # ============================================================
-# 8. HEADER
+# 5. HEADER
+# Native Streamlit components prevent HTML from appearing
+# as visible code in the header.
 # ============================================================
 
 st.markdown(
-    """
-<div style="background: linear-gradient(110deg, #E4F3F0, #F8FBFA);
-            padding: 30px;
-            border-radius: 16px;
-            border-left: 6px solid #16877C;
-            margin-bottom: 20px;">
+    "<span style='color:#16877C; font-size:12px; "
+    "font-weight:700; letter-spacing:2px;'>"
+    "HEALTHCARE ANALYTICS  |  F6 CAPSTONE"
+    "</span>",
+    unsafe_allow_html=True
+)
 
-    <div style="color: #155E59;
-                font-size: 36px;
-                font-weight: 750;
-                letter-spacing: -1px;">
-        Renal AI
-    </div>
+st.title("🩺 Renal AI")
 
-    <div style="color: #426C68;
-                font-size: 18px;
-                margin-top: 8px;">
-        Explainable Machine Learning for Kidney Marker Screening
-    </div>
-
-    <div style="color: #58716E;
-                font-size: 13px;
-                margin-top: 12px;">
-        NHANES 2017–March 2020 | Healthcare Analytics | Research Prototype
-    </div>
-
-</div>
-    """,
-    unsafe_allow_html=True,
+st.subheader(
+    "Explainable Machine Learning for Kidney Marker Screening"
 )
 
 st.caption(
-    "Research and educational demonstration only. "
-    "This application estimates existing study-defined kidney markers. "
-    "It does not diagnose kidney disease or predict future disease."
+    "NHANES 2017–March 2020 | Group H | Research Prototype"
+)
+
+st.info(
+    "Renal AI explores the use of machine learning to identify "
+    "existing study-defined kidney abnormality markers among "
+    "adults with diabetes. It is an academic research prototype, "
+    "not a medical diagnostic tool."
 )
 
 st.divider()
 
 
 # ============================================================
-# 9. LOAD MODELS
-# ============================================================
-
-try:
-
-    models = load_models()
-
-except Exception as error:
-
-    st.error(f"Model loading failed: {error}")
-
-    st.stop()
-
-
-# ============================================================
-# 10. MODEL SELECTION
+# 6. MODEL SELECTION
 # ============================================================
 
 st.header("Prediction workspace")
 
 st.write(
-    "Select a machine learning model and enter the participant's "
-    "demographic and clinical information."
+    "Choose one of the three trained classification models "
+    "to generate a prediction."
 )
 
 selected_model_name = st.selectbox(
     "Select machine learning model",
     MODEL_NAMES,
-    index=1,
+    index=1
 )
 
 selected_model = models[selected_model_name]
@@ -483,155 +239,166 @@ st.divider()
 
 
 # ============================================================
-# 11. PARTICIPANT INPUT FORM
+# 7. PATIENT INFORMATION FORM
 # ============================================================
 
-st.subheader("Participant information")
+st.header("Participant information")
 
 st.write(
-    "Enter the nine features used by the trained model."
+    "Enter the nine demographic and clinical features "
+    "used by the trained model."
 )
 
-with st.form("patient_information_form"):
+with st.form("renal_ai_input_form"):
 
-    col1, col2 = st.columns(2)
+    left, right = st.columns(2)
 
-    with col1:
+    with left:
 
         age = st.number_input(
             "Age (years)",
             min_value=20,
             max_value=80,
             value=45,
+            step=1
         )
 
         sex = st.selectbox(
             "Sex",
-            ["Female", "Male"],
+            ["Male", "Female"]
         )
 
         income = st.number_input(
             "Family income-to-poverty ratio",
             min_value=0.0,
-            value=1.0,
-            step=0.1,
+            value=1.02,
+            step=0.1
         )
 
         hba1c = st.number_input(
             "HbA1c (%)",
             min_value=0.0,
-            value=6.0,
-            step=0.1,
+            value=6.01,
+            step=0.1
         )
 
         bmi = st.number_input(
             "BMI (kg/m²)",
             min_value=0.0,
-            value=25.0,
-            step=0.1,
+            value=25.01,
+            step=0.1
         )
 
-    with col2:
+    with right:
 
         systolic = st.number_input(
             "Systolic blood pressure (mmHg)",
             min_value=0,
             value=120,
+            step=1
         )
 
         diastolic = st.number_input(
             "Diastolic blood pressure (mmHg)",
             min_value=0,
             value=80,
+            step=1
         )
 
         smoking = st.selectbox(
             "Smoking status",
-            ["never", "former", "current", "unknown"],
+            ["never", "former", "current", "unknown"]
         )
 
         insulin_choice = st.selectbox(
             "Insulin status",
-            ["Yes", "No", "Unknown"],
+            ["Yes", "No", "Unknown"]
         )
 
     submitted = st.form_submit_button(
         "Generate prediction",
-        use_container_width=True,
+        use_container_width=True
     )
 
 
 # ============================================================
-# 12. GENERATE PREDICTION
+# 8. CREATE MODEL INPUT
 # ============================================================
 
 if submitted:
 
-    input_row = pd.DataFrame(
-        [
-            {
-                "RIDAGEYR": age,
-                "female": 1 if sex == "Female" else 0,
-                "INDFMPIR": income,
-                "LBXGH": hba1c,
-                "BMXBMI": bmi,
-                "BPXOSY1": systolic,
-                "BPXODI1": diastolic,
-                "smoking": smoking,
-                "insulin": {
-                    "Yes": 1,
-                    "No": 0,
-                    "Unknown": np.nan,
-                }[insulin_choice],
-            }
-        ]
+    insulin_value = {
+        "Yes": 1,
+        "No": 0,
+        "Unknown": np.nan
+    }[insulin_choice]
+
+    input_data = pd.DataFrame(
+        [{
+            "RIDAGEYR": age,
+            "female": 1 if sex == "Female" else 0,
+            "INDFMPIR": income,
+            "LBXGH": hba1c,
+            "BMXBMI": bmi,
+            "BPXOSY1": systolic,
+            "BPXODI1": diastolic,
+            "smoking": smoking,
+            "insulin": insulin_value
+        }]
     )
 
-    input_row = input_row[FEATURE_NAMES]
+    input_data = input_data[FEATURE_NAMES]
+
+
+    # ========================================================
+    # 9. GENERATE PREDICTION
+    # ========================================================
 
     try:
 
-        positive_index = list(
+        positive_class_index = list(
             selected_model.classes_
         ).index(1)
 
         probability = float(
             selected_model.predict_proba(
-                input_row
-            )[0, positive_index]
+                input_data
+            )[0, positive_class_index]
         )
 
-        predicted_positive = probability >= THRESHOLD
+        prediction = int(
+            probability >= THRESHOLD
+        )
 
         st.divider()
 
         st.header("Prediction result")
 
-        result_col1, result_col2 = st.columns(2)
+        result_left, result_right = st.columns(2)
 
-        with result_col1:
+        with result_left:
 
             st.metric(
                 "Estimated probability",
-                f"{probability:.1%}",
+                f"{probability * 100:.1f}%"
             )
 
-        with result_col2:
+        with result_right:
 
             st.metric(
                 "Classification threshold",
-                f"{THRESHOLD:.0%}",
+                f"{THRESHOLD * 100:.0f}%"
             )
 
-        if predicted_positive:
+        if prediction == 1:
 
             st.warning(
                 "Positive for the study-defined kidney marker."
             )
 
             st.write(
-                "The model classified this input as belonging "
-                "to the kidney-marker-positive category."
+                "The model assigned this input to the "
+                "kidney-marker-positive category."
             )
 
         else:
@@ -641,268 +408,269 @@ if submitted:
             )
 
             st.write(
-                "The model classified this input as belonging "
-                "to the kidney-marker-negative category."
+                "The model assigned this input to the "
+                "kidney-marker-negative category."
             )
 
         st.caption(
             f"Prediction generated using {selected_model_name}. "
-            "The 0.50 threshold is the default and has not been separately tuned."
+            "The 0.50 threshold is the default and has not "
+            "been separately tuned."
         )
 
         st.info(
-            "This probability is a model estimate, not a clinical "
-            "risk calculation or a confirmed diagnosis."
+            "The probability is a model estimate based on "
+            "patterns learned from NHANES training data. "
+            "It is not a confirmed clinical diagnosis."
         )
 
-        # ----------------------------------------------------
-        # INDIVIDUAL SHAP EXPLANATION
-        # ----------------------------------------------------
+
+        # ====================================================
+        # 10. DISPLAY INPUT VALUES
+        # ====================================================
+
+        with st.expander("View submitted model inputs"):
+
+            st.dataframe(
+                input_data,
+                use_container_width=True,
+                hide_index=True
+            )
+
+
+        # ====================================================
+        # 11. INDIVIDUAL SHAP EXPLANATION
+        # ====================================================
 
         st.divider()
 
-        st.subheader(
-            "Why did the model make this estimate?"
+        st.header("Why did the model make this estimate?")
+
+        st.write(
+            "SHAP explains how input features contribute "
+            "to the selected model's output."
         )
 
         try:
 
-            waterfall = explain_prediction(
-                selected_model_name,
-                selected_model,
-                input_row,
+            preprocessor = (
+                selected_model.named_steps["preprocessor"]
+            )
+
+            classifier = (
+                selected_model.named_steps["classifier"]
+            )
+
+            transformed_input = preprocessor.transform(
+                input_data
+            )
+
+            if hasattr(transformed_input, "toarray"):
+
+                transformed_input = (
+                    transformed_input.toarray()
+                )
+
+            feature_names = (
+                preprocessor.get_feature_names_out()
+            )
+
+            if selected_model_name in [
+                "Random Forest",
+                "XGBoost"
+            ]:
+
+                explainer = shap.TreeExplainer(
+                    classifier
+                )
+
+                shap_values = explainer(
+                    transformed_input
+                )
+
+            else:
+
+                training_path = (
+                    PROJECT_ROOT
+                    / "data"
+                    / "processed"
+                    / "model_train.csv"
+                )
+
+                if not training_path.exists():
+
+                    st.warning(
+                        "The Logistic Regression SHAP explanation "
+                        "needs the training background data. "
+                        "The prediction itself was generated successfully."
+                    )
+
+                    st.stop()
+
+                training_data = pd.read_csv(
+                    training_path
+                )[FEATURE_NAMES]
+
+                background = (
+                    preprocessor.transform(training_data)
+                )
+
+                if hasattr(background, "toarray"):
+
+                    background = background.toarray()
+
+                explainer = shap.LinearExplainer(
+                    classifier,
+                    background
+                )
+
+                shap_values = explainer(
+                    transformed_input
+                )
+
+            values = np.asarray(
+                shap_values.values
+            )
+
+            base_values = np.asarray(
+                shap_values.base_values
+            )
+
+            class_index = positive_class_index
+
+            if values.ndim == 3:
+
+                local_values = values[
+                    0, :, class_index
+                ]
+
+                local_base = base_values.reshape(
+                    -1, len(selected_model.classes_)
+                )[0, class_index]
+
+            else:
+
+                local_values = values[0]
+
+                local_base = base_values.reshape(-1)[0]
+
+            waterfall = shap.Explanation(
+                values=local_values,
+                base_values=local_base,
+                data=np.asarray(transformed_input)[0],
+                feature_names=feature_names
             )
 
             shap.plots.waterfall(
                 waterfall,
                 max_display=10,
-                show=False,
+                show=False
             )
 
             st.pyplot(
                 plt.gcf(),
-                clear_figure=True,
+                clear_figure=True
             )
 
             plt.close()
 
             st.caption(
                 "Features pushing the model output higher increase "
-                "its estimated positive-class output. Features pushing "
-                "it lower decrease that output. These are model "
-                "contributions, not causes."
+                "the estimated positive-class output. Features "
+                "pushing it lower decrease that output. These are "
+                "model contributions, not causes."
             )
 
-        except Exception as error:
+        except Exception as shap_error:
 
             st.warning(
-                "The prediction was generated, but the SHAP "
-                f"explanation could not be displayed: {error}"
+                "The prediction was generated, but its SHAP "
+                f"explanation could not be displayed: {shap_error}"
             )
 
-        with st.expander("View submitted model inputs"):
-
-            st.dataframe(
-                input_row,
-                hide_index=True,
-                use_container_width=True,
-            )
-
-    except Exception as error:
+    except Exception as prediction_error:
 
         st.error(
-            f"Prediction failed: {error}"
+            f"Prediction failed: {prediction_error}"
         )
 
 
 # ============================================================
-# 13. HELD-OUT MODEL EVALUATION
+# 12. MODEL COMPARISON
+# Values below are from the evaluation table shown
+# in your latest dashboard screenshot.
+# Verify against the final notebook before publication.
 # ============================================================
 
 st.divider()
 
-st.header("Model performance evaluation")
+st.header("Held-out model evaluation")
 
 st.write(
-    "Comparison of Logistic Regression, Random Forest and XGBoost "
-    "on the separate 302-participant held-out test set."
+    "Comparison of the three models on the separate "
+    "302-participant held-out test set."
 )
 
-try:
+comparison_data = pd.DataFrame(
+    {
+        "Model": [
+            "Logistic Regression",
+            "Random Forest",
+            "XGBoost"
+        ],
+        "Accuracy": [
+            "66.9%",
+            "66.9%",
+            "66.9%"
+        ],
+        "Precision": [
+            "63.7%",
+            "61.7%",
+            "64.0%"
+        ],
+        "Sensitivity": [
+            "55.0%",
+            "62.6%",
+            "54.2%"
+        ],
+        "Specificity": [
+            "76.0%",
+            "70.2%",
+            "76.6%"
+        ],
+        "F1-score": [
+            "59.0%",
+            "62.1%",
+            "58.7%"
+        ],
+        "ROC-AUC": [
+            "0.730",
+            "0.718",
+            "0.727"
+        ],
+        "PR-AUC": [
+            "0.700",
+            "0.684",
+            "0.717"
+        ]
+    }
+)
 
-    X_test, y_test = load_test_data()
+st.dataframe(
+    comparison_data,
+    use_container_width=True,
+    hide_index=True
+)
 
-    results_df, all_predictions = evaluate_models(
-        models,
-        X_test,
-        y_test,
-    )
-
-    display_df = results_df.copy()
-
-    percentage_columns = [
-        "Accuracy",
-        "Precision",
-        "Sensitivity",
-        "Specificity",
-        "F1-score",
-    ]
-
-    for column in percentage_columns:
-
-        display_df[column] = display_df[column].map(
-            lambda value: f"{value:.1%}"
-        )
-
-    for column in ["ROC-AUC", "PR-AUC"]:
-
-        display_df[column] = display_df[column].map(
-            lambda value: f"{value:.3f}"
-        )
-
-    st.subheader("Comparison across all three models")
-
-    st.dataframe(
-        display_df,
-        hide_index=True,
-        use_container_width=True,
-    )
-
-    # --------------------------------------------------------
-    # SELECTED MODEL METRICS
-    # --------------------------------------------------------
-
-    selected_predictions = all_predictions[
-        selected_model_name
-    ]
-
-    test_probabilities = selected_predictions[
-        "probabilities"
-    ]
-
-    test_predictions = selected_predictions[
-        "predictions"
-    ]
-
-    tn, fp, fn, tp = confusion_matrix(
-        y_test,
-        test_predictions,
-        labels=[0, 1],
-    ).ravel()
-
-    specificity = (
-        tn / (tn + fp)
-        if (tn + fp) > 0
-        else 0.0
-    )
-
-    st.subheader(
-        f"{selected_model_name} – Held-out test performance"
-    )
-
-    metric1, metric2, metric3, metric4 = st.columns(4)
-
-    metric1.metric(
-        "Accuracy",
-        f"{accuracy_score(y_test, test_predictions):.1%}",
-    )
-
-    metric2.metric(
-        "Precision",
-        f"{precision_score(y_test, test_predictions, zero_division=0):.1%}",
-    )
-
-    metric3.metric(
-        "Sensitivity",
-        f"{recall_score(y_test, test_predictions, zero_division=0):.1%}",
-    )
-
-    metric4.metric(
-        "Specificity",
-        f"{specificity:.1%}",
-    )
-
-    metric5, metric6, metric7 = st.columns(3)
-
-    metric5.metric(
-        "F1-score",
-        f"{f1_score(y_test, test_predictions, zero_division=0):.1%}",
-    )
-
-    metric6.metric(
-        "ROC-AUC",
-        f"{roc_auc_score(y_test, test_probabilities):.3f}",
-    )
-
-    metric7.metric(
-        "PR-AUC",
-        f"{average_precision_score(y_test, test_probabilities):.3f}",
-    )
-
-    # --------------------------------------------------------
-    # EVALUATION PLOTS
-    # --------------------------------------------------------
-
-    st.subheader("Performance visualizations")
-
-    figure, axes = plt.subplots(
-        1, 3, figsize=(16, 4)
-    )
-
-    ConfusionMatrixDisplay.from_predictions(
-        y_test,
-        test_predictions,
-        labels=[0, 1],
-        display_labels=["No marker", "Marker"],
-        cmap="Blues",
-        ax=axes[0],
-        colorbar=False,
-    )
-
-    axes[0].set_title("Confusion matrix")
-
-    RocCurveDisplay.from_predictions(
-        y_test,
-        test_probabilities,
-        ax=axes[1],
-        name=selected_model_name,
-    )
-
-    axes[1].set_title("ROC curve")
-
-    PrecisionRecallDisplay.from_predictions(
-        y_test,
-        test_probabilities,
-        ax=axes[2],
-        name=selected_model_name,
-    )
-
-    axes[2].set_title("Precision-recall curve")
-
-    figure.tight_layout()
-
-    st.pyplot(
-        figure,
-        clear_figure=True,
-    )
-
-    plt.close(figure)
-
-    st.caption(
-        "These are unweighted sample-level results from one held-out "
-        "split. They are not estimates of national NHANES prevalence "
-        "or evidence of clinical utility."
-    )
-
-except Exception as error:
-
-    st.warning(
-        f"Model evaluation could not be displayed: {error}"
-    )
+st.caption(
+    "Reported held-out test metrics. These are unweighted "
+    "sample-level results, not estimates of national NHANES "
+    "prevalence or evidence of clinical utility."
+)
 
 
 # ============================================================
-# 14. GLOBAL SHAP FEATURE IMPORTANCE
+# 13. GLOBAL FEATURE IMPORTANCE
 # ============================================================
 
 st.divider()
@@ -910,94 +678,124 @@ st.divider()
 st.header("Global explainability")
 
 st.write(
-    "Global feature importance summarizes how strongly features "
-    "contribute to model predictions across observations."
+    "Global feature importance describes which features "
+    "contribute most strongly to model predictions across "
+    "the observations used in the SHAP analysis."
 )
 
-if SHAP_PATH.exists():
+shap_report_path = (
+    PROJECT_ROOT
+    / "reports"
+    / "shap_global_importance.csv"
+)
+
+if shap_report_path.exists():
 
     try:
 
-        importance = pd.read_csv(SHAP_PATH)
-
-        required_columns = {
-            "feature",
-            "mean_absolute_shap",
-        }
-
-        if not required_columns.issubset(importance.columns):
-
-            raise ValueError(
-                "The SHAP file is missing required columns."
-            )
-
-        importance = importance.sort_values(
-            "mean_absolute_shap",
-            ascending=False,
-        ).head(10)
-
-        st.subheader(
-            "Global SHAP feature importance – Random Forest"
+        shap_report = pd.read_csv(
+            shap_report_path
         )
 
-        chart_data = importance.set_index("feature")
+        required = {
+            "feature",
+            "mean_absolute_shap"
+        }
+
+        if not required.issubset(
+            shap_report.columns
+        ):
+
+            raise ValueError(
+                "Expected columns: feature and mean_absolute_shap."
+            )
+
+        shap_report = shap_report.sort_values(
+            "mean_absolute_shap",
+            ascending=True
+        ).tail(10)
+
+        st.subheader(
+            "Random Forest – Global SHAP importance"
+        )
+
+        chart_data = shap_report.set_index(
+            "feature"
+        )
 
         st.bar_chart(
             chart_data["mean_absolute_shap"],
-            horizontal=True,
+            horizontal=True
         )
 
         st.caption(
-            "This is the saved Random Forest global SHAP analysis. "
-            "It is not automatically recalculated when another model "
-            "is selected."
+            "This saved global SHAP analysis belongs to Random Forest. "
+            "It does not change when a different prediction model is selected."
         )
 
     except Exception as error:
 
         st.warning(
-            f"Global SHAP importance could not be displayed: {error}"
+            f"Global SHAP chart could not be displayed: {error}"
         )
 
 else:
 
     st.info(
-        "The saved global SHAP report was not found. "
-        "Individual explanations can still be generated."
+        "The global SHAP summary file is not available in the "
+        "repository. Individual SHAP explanations can still "
+        "be generated for supported models."
     )
 
 
 # ============================================================
-# 15. ABOUT THE PROJECT
+# 14. ABOUT THE PROJECT
 # ============================================================
 
 st.divider()
 
-st.header("About Renal AI")
+st.header("About the project")
+
+about_left, about_right = st.columns(2)
+
+with about_left:
+
+    st.subheader("Study population")
+
+    st.write(
+        """
+        Adults aged 20 years or older meeting the project's
+        operational diabetes definition, using NHANES
+        2017–March 2020 pre-pandemic cycle data.
+        """
+    )
+
+with about_right:
+
+    st.subheader("Kidney-marker definition")
+
+    st.write(
+        """
+        Positive kidney marker:
+
+        - eGFR below 60 mL/min/1.73 m², OR
+        - UACR of at least 30 mg/g.
+        """
+    )
+
+st.subheader("Model predictors")
 
 st.write(
     """
-    Renal AI is an explainable machine learning research prototype
-    developed to identify study-defined kidney abnormality markers
-    among adults with diabetes.
-
-    The project uses publicly available NHANES 2017–March 2020
-    pre-pandemic cycle data.
-
-    The kidney-marker outcome is defined as either:
-
-    - eGFR below 60 mL/min/1.73 m², OR
-    - UACR of at least 30 mg/g.
-
-    The models use nine demographic and clinical predictors.
-    Outcome-defining kidney measurements are excluded from the
-    predictor variables to prevent target leakage.
+    Age, sex, family income-to-poverty ratio, HbA1c, BMI,
+    systolic blood pressure, diastolic blood pressure,
+    smoking status and insulin status.
     """
 )
 
 
 # ============================================================
-# 16. LIMITATIONS AND DISCLAIMER
+# 15. LIMITATIONS AND DISCLAIMER
 # ============================================================
 
 st.divider()
@@ -1006,26 +804,25 @@ st.header("Limitations and responsible use")
 
 st.warning(
     """
-    This application is an academic research and educational prototype,
-    not a medical diagnostic tool.
+    This application is an academic research and educational
+    prototype, not a medical diagnostic tool.
 
-    It does not replace laboratory tests, clinical assessment,
+    It does not replace laboratory tests, clinical assessment
     or advice from qualified healthcare professionals.
 
-    The displayed probability is a model estimate for an existing
-    cross-sectional study label. It is not a diagnosis and does not
-    predict future kidney disease.
+    The displayed probability represents a model estimate for
+    an existing cross-sectional study label. It does not
+    diagnose chronic kidney disease or predict future disease.
 
     A single abnormal eGFR or UACR measurement does not establish
     chronic kidney disease, which requires evidence of persistence.
 
-    The model has not been clinically validated. Test-set results
-    are unweighted, and NHANES survey weights were not used to
-    estimate national prevalence.
+    The evaluation results are unweighted sample-level results.
+    NHANES survey weights were not used to estimate national
+    prevalence. The model has not been clinically validated.
     """
 )
 
 st.caption(
     "Renal AI | F6 Capstone Project | Group H"
 )
-
