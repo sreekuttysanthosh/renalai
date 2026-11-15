@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 import joblib
@@ -23,6 +22,7 @@ st.set_page_config(
 
 # ============================================================
 # 2. RENAL AI THEME
+# No custom HTML is used in this application.
 # ============================================================
 
 st.markdown(
@@ -91,11 +91,10 @@ MODEL_PATH = PROJECT_ROOT / "models" / "all_models.joblib"
 
 THRESHOLD = 0.50
 
-# Eight model features (INDFMPIR removed)
-
 FEATURE_NAMES = [
     "RIDAGEYR",
     "female",
+    "INDFMPIR",
     "LBXGH",
     "BMXBMI",
     "BPXOSY1",
@@ -157,15 +156,13 @@ def load_models():
 
         if list(model.feature_names_in_) != FEATURE_NAMES:
             raise ValueError(
-                f"{name} does not expect the correct eight features. "
-                "Retrain the model pipelines without INDFMPIR."
+                f"{name} does not expect the correct nine features."
             )
 
     return saved_models
 
 
 try:
-
     models = load_models()
 
 except Exception as error:
@@ -174,7 +171,7 @@ except Exception as error:
 
     st.info(
         "Check that models/all_models.joblib exists and contains "
-        "the three verified fitted pipelines trained with eight features."
+        "the three verified fitted pipelines."
     )
 
     st.stop()
@@ -182,6 +179,8 @@ except Exception as error:
 
 # ============================================================
 # 5. HEADER
+# Native Streamlit components prevent HTML from appearing
+# as visible code in the header.
 # ============================================================
 
 st.title("🩺 Renal AI")
@@ -229,13 +228,13 @@ st.divider()
 
 
 # ============================================================
-# 7. PARTICIPANT INFORMATION FORM
+# 7. PATIENT INFORMATION FORM
 # ============================================================
 
 st.header("Participant information")
 
 st.write(
-    "Enter the eight demographic and clinical features "
+    "Enter the nine demographic and clinical features "
     "used by the trained model."
 )
 
@@ -256,6 +255,13 @@ with st.form("renal_ai_input_form"):
         sex = st.selectbox(
             "Sex",
             ["Male", "Female"]
+        )
+
+        income = st.number_input(
+            "Family income-to-poverty ratio",
+            min_value=0.0,
+            value=1.02,
+            step=0.1
         )
 
         hba1c = st.number_input(
@@ -320,6 +326,7 @@ if submitted:
         [{
             "RIDAGEYR": age,
             "female": 1 if sex == "Female" else 0,
+            "INDFMPIR": income,
             "LBXGH": hba1c,
             "BMXBMI": bmi,
             "BPXOSY1": systolic,
@@ -579,6 +586,9 @@ if submitted:
 
 # ============================================================
 # 12. MODEL COMPARISON
+# Values below are from the evaluation table shown
+# in your latest dashboard screenshot.
+# Verify against the final notebook before publication.
 # ============================================================
 
 st.divider()
@@ -766,8 +776,9 @@ st.subheader("Model predictors")
 
 st.write(
     """
-    Age, sex, HbA1c, BMI, systolic blood pressure,
-    diastolic blood pressure, smoking status and insulin status.
+    Age, sex, family income-to-poverty ratio, HbA1c, BMI,
+    systolic blood pressure, diastolic blood pressure,
+    smoking status and insulin status.
     """
 )
 
