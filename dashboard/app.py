@@ -184,23 +184,13 @@ except Exception as error:
 # as visible code in the header.
 # ============================================================
 
-st.markdown(
-    "<span style='color:#16877C; font-size:12px; "
-    "font-weight:700; letter-spacing:2px;'>"
-    "HEALTHCARE ANALYTICS  |  F6 CAPSTONE"
-    "</span>",
-    unsafe_allow_html=True
-)
-
 st.title("🩺 Renal AI")
 
 st.subheader(
     "Explainable Machine Learning for Kidney Marker Screening"
 )
 
-st.caption(
-    "NHANES 2017–March 2020 | Group H | Research Prototype"
-)
+st.caption("NHANES 2017–March 2020")
 
 st.info(
     "Renal AI explores the use of machine learning to identify "
