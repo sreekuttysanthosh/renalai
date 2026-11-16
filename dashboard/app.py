@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 import joblib
@@ -583,7 +582,88 @@ if submitted:
 
 
 # ============================================================
-# 12. MODEL COMPARISON
+# 12. GLOBAL EXPLAINABILITY (DYNAMIC SHAP SUMMARY)
+# ============================================================
+
+st.divider()
+
+st.header("Global explainability")
+
+st.write(
+    "Global feature importance describes which features contribute most strongly "
+    "to model predictions across the observations used in the SHAP analysis."
+)
+
+training_path_global = PROJECT_ROOT / "data" / "processed" / "model_train.csv"
+
+if not training_path_global.exists():
+    # Fallback if data is missing
+    st.info(
+        "The global SHAP summary file is not available in the repository. "
+        "Individual SHAP explanations can still be generated for supported models."
+    )
+else:
+    try:
+        # Load the training data
+        df_train = pd.read_csv(training_path_global)
+        
+        # Sample a subset for faster computation in the UI
+        sample_size = min(200, len(df_train))
+        df_background = df_train[FEATURE_NAMES].sample(n=sample_size, random_state=42)
+
+        preprocessor_global = selected_model.named_steps["preprocessor"]
+        classifier_global = selected_model.named_steps["classifier"]
+
+        transformed_background = preprocessor_global.transform(df_background)
+        if hasattr(transformed_background, "toarray"):
+            transformed_background = transformed_background.toarray()
+
+        feature_names_global = preprocessor_global.get_feature_names_out()
+
+        # Generate SHAP values for the background data
+        if selected_model_name in ["Random Forest", "XGBoost"]:
+            explainer_global = shap.TreeExplainer(classifier_global)
+            shap_values_global = explainer_global(transformed_background)
+        else:
+            explainer_global = shap.LinearExplainer(classifier_global, transformed_background)
+            shap_values_global = explainer_global(transformed_background)
+
+        # Extract values for plotting (handle multi-class if necessary)
+        vals_global = np.asarray(shap_values_global.values)
+        if vals_global.ndim == 3:
+            class_index_global = list(selected_model.classes_).index(1)
+            vals_to_plot = vals_global[:, :, class_index_global]
+        else:
+            vals_to_plot = vals_global
+
+        # Create the summary plot (Beeswarm plot)
+        plt.figure(figsize=(10, 6))
+        shap.summary_plot(
+            vals_to_plot,
+            transformed_background,
+            feature_names=feature_names_global,
+            show=False
+        )
+        
+        st.pyplot(plt.gcf(), clear_figure=True)
+        plt.close()
+
+        st.caption(
+            "This summary plot shows the distribution of SHAP values for each feature "
+            "across a sample of the training data. Features are ordered by their overall impact. "
+            "Red points represent higher feature values, while blue points represent lower values."
+        )
+
+    except Exception as global_error:
+        st.warning(f"Could not generate global SHAP explanation: {global_error}")
+        st.info(
+            "The global SHAP summary file is not available in the repository. "
+            "Individual SHAP explanations can still be generated for supported models."
+        )
+
+
+# ============================================================
+# 13. MODEL COMPARISON
 # ============================================================
 
 st.divider()
@@ -654,7 +734,7 @@ st.caption(
 
 
 # ============================================================
-# 13. ABOUT THE PROJECT
+# 14. ABOUT THE PROJECT
 # ============================================================
 
 st.divider()
@@ -700,7 +780,7 @@ st.write(
 
 
 # ============================================================
-# 14. LIMITATIONS AND DISCLAIMER
+# 15. LIMITATIONS AND DISCLAIMER
 # ============================================================
 
 st.divider()
