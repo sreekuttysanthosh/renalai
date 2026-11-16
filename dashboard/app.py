@@ -1,3 +1,4 @@
+
 from pathlib import Path
 
 import joblib
@@ -22,7 +23,6 @@ st.set_page_config(
 
 # ============================================================
 # 2. RENAL AI THEME
-# No custom HTML is used in this application.
 # ============================================================
 
 st.markdown(
@@ -179,8 +179,6 @@ except Exception as error:
 
 # ============================================================
 # 5. HEADER
-# Native Streamlit components prevent HTML from appearing
-# as visible code in the header.
 # ============================================================
 
 st.title("🩺 Renal AI")
@@ -586,9 +584,6 @@ if submitted:
 
 # ============================================================
 # 12. MODEL COMPARISON
-# Values below are from the evaluation table shown
-# in your latest dashboard screenshot.
-# Verify against the final notebook before publication.
 # ============================================================
 
 st.divider()
@@ -658,9 +653,8 @@ st.caption(
 )
 
 
-
 # ============================================================
-# 14. ABOUT THE PROJECT
+# 13. ABOUT THE PROJECT
 # ============================================================
 
 st.divider()
@@ -706,7 +700,7 @@ st.write(
 
 
 # ============================================================
-# 15. LIMITATIONS AND DISCLAIMER
+# 14. LIMITATIONS AND DISCLAIMER
 # ============================================================
 
 st.divider()
