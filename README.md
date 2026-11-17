@@ -434,7 +434,5 @@ Data used in this project were obtained from the National Health and Nutrition E
 2. THEERTHA VIJYACHANDRAN 
 3. YADHU KRISHNA VB 
 
-Renal AI is developed exclusively for academic, research and educational purposes.
 
-The model estimates the likelihood of an abnormal kidney-marker classification based on the patterns learned from the NHANES training data. It does not diagnose chronic kidney disease, predict future disease progression or replace professional medical assessment.
 
