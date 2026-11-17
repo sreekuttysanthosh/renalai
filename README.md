@@ -429,7 +429,10 @@ Data used in this project were obtained from the National Health and Nutrition E
 **Status:** Research prototype and machine learning implementation developed; ongoing refinement and documentation.
 
 ---
-## 21. 
+## 21. Contributors
+1. SREEKUTTY SANTHOSH
+2. THEERTHA VIJYACHANDRAN 
+3. YADHU KRISHNA VB 
 
 Renal AI is developed exclusively for academic, research and educational purposes.
 
