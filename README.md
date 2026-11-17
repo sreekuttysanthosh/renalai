@@ -1,12 +1,16 @@
+
 # Renal AI | Explainable Machine Learning for Kidney Health Screening
 
-**An end-to-end Healthcare Analytics and Explainable AI project using NHANES clinical data**
+### An End-to-End Healthcare Analytics, Machine Learning and Explainable AI Project
 
-[![Python](https://img.shields.io/badge/Python-3.x-blue)](https://www.python.org/)
-[![Scikit-learn](https://img.shields.io/badge/Scikit--learn-ML-orange)](https://scikit-learn.org/)
-[![XGBoost](https://img.shields.io/badge/XGBoost-Gradient%20Boosting-green)](https://xgboost.readthedocs.io/)
-[![SHAP](https://img.shields.io/badge/Explainable%20AI-SHAP-purple)](https://shap.readthedocs.io/)
-[![Streamlit](https://img.shields.io/badge/Deployment-Streamlit-red)](https://streamlit.io/)
+<p align="center">
+  <a href="https://renaliq-u.streamlit.app/">
+    <img src="https://img.shields.io/badge/Live%20Demo-Renaliq-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" />
+  </a>
+  <img src="https://img.shields.io/badge/Python-3.x-blue?style=for-the-badge&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/Machine%20Learning-Scikit--learn-orange?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Explainable%20AI-SHAP-purple?style=for-the-badge" />
+</p>
 
 **Live Application:** https://renaliq-u.streamlit.app/
 
@@ -14,75 +18,85 @@
 
 ## 1. Project Overview
 
-Renal AI is an explainable machine learning project that investigates whether routinely available demographic and clinical characteristics can help identify abnormal kidney markers among adults with diabetes.
+Renal AI is an explainable machine learning project that investigates whether demographic, clinical, metabolic and lifestyle characteristics can help identify existing abnormal kidney markers among adults with diabetes.
 
-The project uses publicly available health examination, laboratory and questionnaire data from the **National Health and Nutrition Examination Survey (NHANES), 2017–March 2020 pre-pandemic cycle**.
+The project uses publicly available data from the **National Health and Nutrition Examination Survey (NHANES), 2017–March 2020 pre-pandemic cycle**, conducted by the US Centers for Disease Control and Prevention (CDC).
 
-Multiple NHANES datasets are integrated to construct a diabetes cohort and identify kidney abnormalities using two complementary indicators:
+Multiple NHANES datasets are integrated to construct a study cohort and identify kidney abnormalities using two complementary indicators:
 
 - **Estimated Glomerular Filtration Rate (eGFR):** An estimate of kidney filtration function.
 - **Urine Albumin-to-Creatinine Ratio (UACR):** An indicator of albumin leakage into urine.
 
-Three machine learning algorithms are developed and compared. SHAP is incorporated to interpret individual model predictions, and an interactive Streamlit application, **Renaliq**, demonstrates the prediction and explanation workflow.
+Three machine learning algorithms are developed and evaluated:
 
-The project brings together healthcare data engineering, statistical analysis, predictive modelling and explainable artificial intelligence in one reproducible research workflow.
+- Logistic Regression
+- Random Forest
+- XGBoost
+
+SHAP (SHapley Additive exPlanations) is used to interpret individual model predictions. An interactive Streamlit application, **Renaliq**, demonstrates the prediction and explainability workflow.
+
+The project demonstrates an end-to-end healthcare analytics workflow, combining healthcare data integration, exploratory analysis, predictive modelling, model evaluation, explainable AI and application development.
 
 ## 2. Problem Statement
 
-Diabetes is an important risk factor associated with kidney complications. Identifying abnormal kidney markers is an important part of monitoring kidney health among people with diabetes.
+Diabetes is an important risk factor associated with kidney complications.
 
-However, kidney abnormalities cannot always be understood through a single clinical measurement. Reduced kidney filtration and increased urinary albumin represent different aspects of kidney health.
+Kidney abnormalities can involve reduced filtration function or increased albumin leakage into urine. These changes are assessed using measurements such as eGFR and UACR.
 
-This project investigates the following question:
+However, identifying individuals with abnormal kidney markers requires analysing multiple types of healthcare information rather than relying on a single demographic or clinical characteristic.
 
-**Can demographic, metabolic, clinical and lifestyle characteristics be used by machine learning models to identify adults with diabetes who have existing abnormal kidney markers?**
+This project investigates:
 
-The challenge involves integrating heterogeneous healthcare datasets, defining a reliable outcome from laboratory measurements, preventing target leakage, evaluating predictive performance and making model predictions interpretable.
+**Can routinely available demographic and clinical characteristics be used by machine learning models to identify adults with diabetes who have existing abnormal kidney markers?**
+
+The project addresses challenges involving heterogeneous healthcare data integration, cohort construction, outcome definition, missing-data handling, target leakage prevention, predictive modelling and model interpretability.
 
 ## 3. Proposed Solution
 
-An end-to-end machine learning pipeline was developed to address the research problem.
+An end-to-end machine learning pipeline was developed to investigate the research problem.
 
-The workflow consists of:
+The workflow includes:
 
-1. Integrating eight NHANES datasets using the participant identifier `SEQN`.
-2. Cleaning the data and performing data-quality assessments.
-3. Identifying eligible adults with diabetes using predefined criteria.
-4. Constructing a binary kidney-marker outcome using eGFR and UACR.
-5. Performing exploratory data analysis and missing-data assessment.
-6. Selecting predictors and auditing potential target leakage.
-7. Building preprocessing pipelines for numerical and categorical variables.
-8. Training and comparing Logistic Regression, Random Forest and XGBoost.
-9. Evaluating performance using multiple classification metrics.
-10. Applying SHAP to explain individual predictions.
-11. Developing an interactive Streamlit application for model demonstration.
+1. Integration of eight NHANES datasets using the participant identifier `SEQN`.
+2. Data cleaning and quality assessment.
+3. Identification of eligible adults with diabetes.
+4. Construction of a binary kidney-marker outcome using eGFR and UACR.
+5. Exploratory data analysis and missing-data assessment.
+6. Predictor selection and target leakage auditing.
+7. Missing-value imputation and feature preprocessing.
+8. Development of three machine learning classification models.
+9. Model evaluation and comparison.
+10. SHAP-based individual prediction explanations.
+11. Development of an interactive Streamlit application.
 
-The final application, Renaliq, allows users to enter demographic and clinical characteristics, obtain a model prediction and inspect the features contributing to that individual prediction.
+The final prototype, Renaliq, demonstrates how machine learning predictions and their feature-level explanations can be presented through an interactive interface.
 
 ## 4. Key Project Objectives
 
 - Integrate demographic, examination, laboratory and questionnaire data from NHANES.
-- Construct a well-defined study cohort of adults with diabetes.
-- Identify abnormal kidney markers using eGFR and UACR thresholds.
-- Conduct exploratory data analysis and assess data quality.
+- Construct a study cohort of adults with diabetes.
+- Define kidney abnormalities using eGFR and UACR thresholds.
+- Perform exploratory data analysis and data-quality assessment.
 - Engineer a clinically relevant binary outcome.
-- Prevent target leakage through appropriate predictor selection.
-- Implement reproducible preprocessing and machine learning pipelines.
-- Compare multiple classification algorithms.
-- Evaluate classification performance and the trade-off between false negatives and false positives.
-- Apply explainable AI to interpret individual model predictions.
-- Build an interactive research prototype using Streamlit.
-- Examine limitations, subgroup performance and potential generalizability.
+- Prevent target leakage during feature selection and model development.
+- Implement reproducible preprocessing pipelines.
+- Develop and compare multiple classification algorithms.
+- Evaluate predictive performance using appropriate classification metrics.
+- Apply SHAP to interpret individual model predictions.
+- Develop an interactive Streamlit research prototype.
+- Examine model limitations, subgroup performance and generalizability.
 
 ## 5. Dataset and Cohort Construction
 
-**Data source:** National Health and Nutrition Examination Survey (NHANES), CDC/NCHS.
+**Dataset:** National Health and Nutrition Examination Survey (NHANES)
 
-**Study period:** 2017–March 2020 pre-pandemic cycle.
+**Study cycle:** 2017–March 2020 pre-pandemic cycle
 
-Eight data components were integrated using `SEQN`, the NHANES participant identifier.
+**Source:** CDC / National Center for Health Statistics (NCHS)
 
-| Data component | Information extracted |
+Eight NHANES data components were integrated using `SEQN`, the participant identifier.
+
+| Dataset component | Information extracted |
 |---|---|
 | Demographics | Age, sex and socioeconomic information |
 | Diabetes questionnaire | Self-reported diabetes and treatment information |
@@ -93,13 +107,13 @@ Eight data components were integrated using `SEQN`, the NHANES participant ident
 | Blood pressure | Systolic and diastolic blood pressure |
 | Smoking questionnaire | Smoking information |
 
-### Cohort selection
+### Cohort Selection
 
-The study focuses on adults aged 20 years and above with diabetes, identified using the project's operational eligibility criteria.
+Adults aged 20 years and above were selected using the project's predefined diabetes eligibility criteria.
 
-The cohort was constructed using self-reported diabetes and HbA1c-based criteria, followed by the predefined data-quality and eligibility checks.
+The cohort was constructed using self-reported diabetes and HbA1c-based criteria, followed by the required eligibility and data-quality checks.
 
-**Cohort summary:**
+### Cohort Summary
 
 | Stage | Records |
 |---|---:|
@@ -108,34 +122,34 @@ The cohort was constructed using self-reported diabetes and HbA1c-based criteria
 | Classifiable kidney-marker outcomes | 1,506 |
 | Positive kidney-marker cases | 651 |
 | Negative kidney-marker cases | 855 |
-| Excluded due to insufficient outcome measurements | 95 |
+| Insufficient outcome measurements | 95 |
 
-## 6. Kidney Abnormality Outcome Definition
+## 6. Kidney Abnormality Definition
 
-A binary target variable, `kidney_marker`, was constructed using two kidney-related measurements.
+A binary target variable named `kidney_marker` was constructed using two kidney-related measurements.
 
-**Positive kidney-marker classification:**
+### Positive Classification
 
-- eGFR < 60 mL/min/1.73 m², OR
-- UACR ≥ 30 mg/g.
+A participant was classified as positive if either condition was satisfied:
 
-**Negative kidney-marker classification:**
+- eGFR < 60 mL/min/1.73 m²
+- UACR ≥ 30 mg/g
 
-Both eGFR and UACR must be observed and within the study's normal ranges.
+### Negative Classification
+
+A participant was classified as negative only when both measurements were available and within the normal ranges defined by the study.
 
 eGFR was calculated using the race-free 2021 CKD-EPI creatinine equation.
 
-The NHANES-provided UACR measurement was used and checked against its underlying urine albumin and creatinine measurements.
+The NHANES-provided UACR measurement was used and validated against its underlying urine albumin and creatinine measurements.
 
-This combined outcome captures two complementary indicators of kidney abnormality.
-
-**Clinical interpretation:** A single abnormal eGFR or UACR measurement does not establish chronic kidney disease. CKD diagnosis requires clinical assessment and evidence that abnormalities persist over time.
+**Important:** A single abnormal eGFR or UACR measurement does not establish chronic kidney disease (CKD). Clinical diagnosis requires further assessment and evidence of persistence over time.
 
 ## 7. Predictive Features
 
-Nine demographic, socioeconomic, clinical and lifestyle features were selected for model development.
+Nine demographic, socioeconomic, clinical and lifestyle variables were selected as model predictors.
 
-| Feature | Description | Domain |
+| Feature | Description | Category |
 |---|---|---|
 | Age | Participant age | Demographic |
 | Sex | Female indicator | Demographic |
@@ -147,19 +161,19 @@ Nine demographic, socioeconomic, clinical and lifestyle features were selected f
 | Smoking | Smoking category | Lifestyle |
 | Insulin | Insulin status | Treatment-related |
 
-Direct kidney outcome measurements, including eGFR, UACR, serum creatinine and urine albumin measurements, were excluded from model predictors to prevent target leakage.
+Direct kidney outcome measurements, including eGFR, UACR, serum creatinine and urine albumin measurements, were excluded from the predictor variables to prevent target leakage.
 
-The participant identifier `SEQN` was also excluded from model features.
+The participant identifier `SEQN` was also excluded from model predictors.
 
-## 8. Technical Methodology
+## 8. Methodology
 
-### Data engineering and preprocessing
+### Data Engineering and Preprocessing
 
-- Multi-file integration using participant identifiers.
+- Multi-file dataset integration using participant identifiers.
 - Data cleaning and duplicate assessment.
 - Missing-value and data-quality analysis.
 - Numerical and categorical feature handling.
-- Training-data-based imputation.
+- Numerical imputation using training data.
 - Categorical encoding.
 - Numerical feature scaling where required.
 - Missingness indicator handling for insulin status.
@@ -167,23 +181,25 @@ The participant identifier `SEQN` was also excluded from model features.
 
 All preprocessing transformations were fitted using training data to reduce information leakage.
 
-### Machine learning models
+### Train-Test Split
 
-Three classification algorithms were implemented:
+- Stratified 80:20 train-test split.
+- Training records: 1,204.
+- Testing records: 302.
+- Stratified five-fold cross-validation on the training data.
+- Randomized hyperparameter search.
 
-| Algorithm | Role in the project |
+### Machine Learning Algorithms
+
+| Algorithm | Description |
 |---|---|
-| Logistic Regression | Interpretable linear baseline classifier |
+| Logistic Regression | Baseline linear classification model |
 | Random Forest | Ensemble learning using multiple decision trees |
 | XGBoost | Gradient-boosted decision-tree classifier |
 
-Hyperparameter tuning was performed using randomized search with stratified five-fold cross-validation on the training dataset.
+## 9. Model Evaluation and Results
 
-A stratified 80:20 train-test split was used.
-
-### Model evaluation
-
-The models were evaluated using:
+The models were evaluated using the following metrics:
 
 - Accuracy
 - Precision
@@ -193,11 +209,7 @@ The models were evaluated using:
 - PR-AUC
 - Confusion matrices
 
-Particular attention was given to recall because missed positive kidney-marker cases are an important consideration in screening-oriented research.
-
-## 9. Model Performance
-
-The following results were obtained on the held-out test dataset using the default classification threshold of 0.50.
+### Model Comparison
 
 | Model | ROC-AUC | Recall | F1-score | PR-AUC |
 |---|---:|---:|---:|---:|
@@ -207,105 +219,112 @@ The following results were obtained on the held-out test dataset using the defau
 
 All three models achieved approximately 66.9% accuracy.
 
-**Model selection:** Random Forest was selected for individual-level SHAP analysis because it achieved the highest recall and F1-score at the default threshold.
+### Model Selection
 
-Logistic Regression achieved the highest ROC-AUC, while XGBoost achieved the highest PR-AUC. Therefore, model selection was based on the project's evaluation priorities rather than a claim that one algorithm performed best across every metric.
+Random Forest was selected for individual-level SHAP analysis because it achieved the highest recall and F1-score at the default classification threshold of 0.50.
+
+Logistic Regression achieved the highest ROC-AUC, while XGBoost achieved the highest PR-AUC.
+
+Model selection was therefore based on the project's evaluation priorities rather than performance on a single metric.
 
 The results indicate moderate predictive performance and require further validation.
 
-## 10. Explainable Artificial Intelligence
+## 10. Explainable Artificial Intelligence (SHAP)
 
-SHAP (SHapley Additive exPlanations) was used to investigate how model features influence predictions.
+SHAP (SHapley Additive exPlanations) was implemented to understand how individual features influence model predictions.
 
-The project incorporates explainability to improve the transparency of machine learning outputs.
+The project uses individual-level explanations to investigate the contribution of different input features to a participant's prediction.
 
-**Individual-level explainability:**
+### Explainability Components
 
-- SHAP waterfall plots.
+- Individual SHAP waterfall plots.
 - Positive and negative feature contributions.
-- Feature-level interpretation for individual predictions.
+- Feature-level interpretation of individual predictions.
+- Global feature importance and SHAP analysis in the research evaluation.
 
-The research analysis also examines global feature importance and SHAP-based feature patterns.
+SHAP improves model interpretability by explaining how features contribute to model outputs.
 
-SHAP explanations describe the behaviour of the trained model. They do not establish causal relationships or demonstrate that a feature is biologically responsible for kidney abnormalities.
+However, SHAP values explain model behaviour and do not establish causal relationships or biological mechanisms.
 
-## 11. Renaliq – Interactive Research Application
+## 11. Renaliq – Interactive Streamlit Application
 
-**Live application:** https://renaliq-u.streamlit.app/
+**Live Demo:** https://renaliq-u.streamlit.app/
 
-Renaliq is a Streamlit-based interactive research prototype developed to demonstrate the practical application of the trained machine learning pipeline.
+Renaliq is an interactive research prototype developed using Streamlit.
 
-The application provides:
+It demonstrates how a trained machine learning pipeline can be integrated into a user-facing application.
+
+### Dashboard Capabilities
 
 - Demographic and clinical feature inputs.
 - Model-based kidney-marker classification.
-- Estimated model prediction probability.
+- Estimated prediction probability.
 - Individual-level SHAP explanations.
-- Interactive interpretation of prediction contributions.
+- Feature contribution interpretation.
 - Research-use disclaimer and limitations.
 
-The dashboard connects machine learning outputs with an accessible user interface, demonstrating how predictive modelling and explainable AI can be presented through an interactive application.
+The application connects predictive modelling with explainable AI through an interactive interface.
 
-The application is not connected to a hospital information system and is not intended for real patient diagnosis or treatment decisions.
+The dashboard is not connected to hospital information systems and is not intended for real patient diagnosis or treatment decisions.
 
 ## 12. Technology Stack
 
-| Technology | Application |
+| Technology | Purpose |
 |---|---|
 | Python | Core programming and model development |
-| Pandas | Dataset integration and data manipulation |
+| Pandas | Data integration and manipulation |
 | NumPy | Numerical operations |
 | Matplotlib | Data visualization |
 | Seaborn | Exploratory data visualization |
 | Scikit-learn | Preprocessing, pipelines, classification and evaluation |
-| XGBoost | Gradient-boosted machine learning |
-| SHAP | Explainable AI and individual prediction interpretation |
+| XGBoost | Gradient-boosted classification |
+| SHAP | Explainable AI |
 | Joblib | Model serialization and loading |
-| Streamlit | Interactive dashboard development |
-| Jupyter Notebook | Exploratory analysis and experimentation |
+| Streamlit | Interactive application development |
+| Jupyter Notebook | Data exploration and experimentation |
 | Git and GitHub | Version control and project management |
 
 ## 13. Skills Demonstrated and Key Learning Outcomes
 
 This project provided practical experience across the healthcare analytics and machine learning lifecycle.
 
-**Healthcare data analytics**
-- Integrating heterogeneous health datasets.
-- Understanding clinical and laboratory variables.
+### Healthcare Data Analytics
+- Integrating heterogeneous healthcare datasets.
+- Understanding clinical and laboratory measurements.
 - Constructing research cohorts.
-- Defining outcomes using clinical measurement thresholds.
-- Assessing missingness and data quality.
+- Defining outcomes using clinical thresholds.
+- Assessing missing data and data quality.
 
-**Machine learning**
+### Machine Learning
 - Building classification pipelines.
 - Implementing Logistic Regression, Random Forest and XGBoost.
 - Hyperparameter optimization.
-- Cross-validation and stratified train-test splitting.
-- Evaluating classification performance and threshold-dependent metrics.
+- Cross-validation and stratified data splitting.
+- Evaluating classification metrics and threshold-dependent performance.
 
-**Explainable AI**
+### Explainable AI
 - Understanding SHAP values.
 - Interpreting feature contributions.
-- Analysing individual model predictions.
+- Analysing individual predictions.
 - Distinguishing model associations from causal explanations.
 
-**Software development and deployment**
+### Software Development and Deployment
 - Saving and loading trained machine learning models.
-- Integrating models into a Streamlit application.
-- Creating interactive prediction workflows.
-- Managing project files and dependencies.
+- Integrating machine learning pipelines into Streamlit.
+- Building interactive prediction workflows.
+- Managing project dependencies.
 - Using Git and GitHub for version control.
 
-**Research and critical analysis**
-- Translating a healthcare question into a machine learning problem.
+### Research and Critical Analysis
+- Translating a healthcare problem into a machine learning task.
 - Identifying target leakage.
 - Evaluating model limitations.
 - Interpreting subgroup performance.
-- Understanding generalizability and external validation requirements.
+- Understanding external validation and generalizability.
 
-## 14. Sensitivity Analysis and Limitations
+## 14. Sensitivity Analysis and Subgroup Evaluation
 
-Sensitivity analyses explored the impact of alternative modelling choices, including:
+Sensitivity analyses explored the effect of alternative modelling choices:
 
 - Removing HbA1c.
 - Removing insulin.
@@ -314,31 +333,33 @@ Sensitivity analyses explored the impact of alternative modelling choices, inclu
 
 Subgroup performance was also explored across age, sex and race/ethnicity groups.
 
-The following limitations are acknowledged:
+These analyses were intended to examine the robustness of model findings and identify areas requiring further investigation.
+
+## 15. Limitations
 
 - NHANES is a cross-sectional survey.
 - The analysis is unweighted and does not estimate national prevalence.
-- A single abnormal measurement does not establish CKD.
+- A single abnormal kidney-marker measurement does not establish CKD.
 - Model performance may be affected by missing data and sample size.
-- Subgroup results require cautious interpretation.
-- Findings may not generalize to Indian or other populations.
-- No independent hospital-based external validation has been conducted.
-- The application is a research prototype, not a clinically validated decision-support system.
+- Subgroup estimates require cautious interpretation.
+- Findings may not generalize to other populations, including Indian populations.
+- No independent hospital-based external validation has been performed.
+- The application is an academic research prototype, not a clinically validated diagnostic system.
 
-## 15. Future Scope
+## 16. Future Scope
 
-Potential future extensions include:
+Potential extensions include:
 
-- Validation using independent clinical or hospital-based datasets.
+- External validation using independent clinical datasets.
 - Investigation of Indian healthcare datasets for population-specific evaluation.
-- Longitudinal analysis to investigate persistent kidney abnormalities and future outcomes.
-- Further evaluation of missing-data strategies and classification thresholds.
-- Calibration and external validation of predicted probabilities.
-- Expanded fairness and subgroup performance analysis.
-- Additional explainability and model-monitoring capabilities.
-- Further development of the interactive application.
+- Longitudinal analysis of kidney-function changes.
+- Evaluation of additional missing-data strategies.
+- Probability calibration and threshold optimization.
+- Expanded subgroup and fairness analysis.
+- Further development of the interactive dashboard.
+- Integration with validated healthcare decision-support workflows, subject to appropriate clinical and regulatory evaluation.
 
-## 16. Repository Structure
+## 17. Repository Structure
 
 ```text
 renaliq-main/
@@ -365,9 +386,9 @@ renaliq-main/
 └── README.md
 ```
 
-*Note: This is the intended project organization. Filenames should be updated to reflect the actual repository contents.*
+*Note: This represents the intended repository organization. Update filenames and folders to match the actual repository.*
 
-## 17. Running the Application Locally
+## 18. Installation and Usage
 
 ### Clone the repository
 
@@ -382,7 +403,7 @@ cd renaliq-main
 python -m venv .venv
 ```
 
-Activate on Windows:
+### Activate the environment (Windows)
 
 ```bash
 .venv\Scripts\activate
@@ -394,45 +415,40 @@ Activate on Windows:
 pip install -r requirements.txt
 ```
 
-### Run the dashboard
+### Run the Streamlit application
 
 ```bash
 python -m streamlit run dashboard/app.py
 ```
 
-The application will open in your local browser.
+The application will open in your browser.
 
-## 18. Data Privacy and Responsible Use
+## 19. Data Privacy and Responsible Use
 
 This project uses publicly available NHANES research data.
 
 - Raw participant-level datasets should not be committed to a public repository.
 - Participant identifiers are excluded from model predictors.
-- Appropriate data handling and privacy practices should be followed.
-- Predictions must not be used as clinical diagnoses or treatment recommendations.
+- Appropriate data-handling and privacy practices should be followed.
+- Predictions must not be interpreted as clinical diagnoses or treatment recommendations.
 
-## 19. Disclaimer
+## 20. Disclaimer
 
 Renal AI is developed exclusively for academic, research and educational purposes.
 
-The model estimates the likelihood of an abnormal kidney-marker classification based on the patterns learned from the NHANES training data. It does not diagnose chronic kidney disease, predict future disease progression or replace professional medical assessment.
+The model estimates the likelihood of an abnormal kidney-marker classification based on patterns learned from NHANES data.
 
-## 20. Acknowledgements
+It does not diagnose chronic kidney disease, predict future disease progression or replace professional medical assessment.
+
+## 21. Acknowledgements
 
 Data used in this project were obtained from the National Health and Nutrition Examination Survey (NHANES), conducted by the US Centers for Disease Control and Prevention (CDC) and the National Center for Health Statistics (NCHS).
 
 ---
 
-**Project:** Renal AI / Renaliq  
-**Domain:** Healthcare Analytics | Machine Learning | Explainable AI  
-**Application:** https://renaliq-u.streamlit.app/  
-**Status:** Research prototype and machine learning implementation developed; ongoing refinement and documentation.
-
----
-## 21. Contributors
-1. SREEKUTTY SANTHOSH
-2. THEERTHA VIJYACHANDRAN 
-3. YADHU KRISHNA VB 
-
-
-
+<p align="center">
+  <b>Renal AI | Renaliq</b><br>
+  Healthcare Analytics • Machine Learning • Explainable AI
+  <br><br>
+  <a href="https://renaliq-u.streamlit.app/">Explore the Live Application</a>
+</p>
