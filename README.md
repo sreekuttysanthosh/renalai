@@ -453,6 +453,13 @@ This project was collaboratively developed by:
 
 
 
+## Academic Context
+
+Developed as part of the **Healthcare Analytics Capstone Project**  
+**Programme:** M.Sc. Data Science (BioAI)  
+**Academic Year:** 2026–2027  
+**Institution:** Kerala University of Digital Sciences, Innovation and Technology
+ 
 ## 21. Acknowledgements
 
 Data used in this project were obtained from the National Health and Nutrition Examination Survey (NHANES), conducted by the US Centers for Disease Control and Prevention (CDC) and the National Center for Health Statistics (NCHS).
