@@ -440,6 +440,19 @@ The model estimates the likelihood of an abnormal kidney-marker classification b
 
 It does not diagnose chronic kidney disease, predict future disease progression or replace professional medical assessment.
 
+
+## 22. Collaborators
+
+This project was collaboratively developed by:
+
+| Team Member | Contribution |
+|---|---|
+| Sreekutty Santhosh | Healthcare data analysis, cohort construction, data preprocessing and project documentation |
+| Theertha Vijayachandran | Machine learning development, model evaluation and explainability |
+| Yadhu Krishnan V.B | Streamlit dashboard development, application integration and testing |
+
+
+
 ## 21. Acknowledgements
 
 Data used in this project were obtained from the National Health and Nutrition Examination Survey (NHANES), conducted by the US Centers for Disease Control and Prevention (CDC) and the National Center for Health Statistics (NCHS).
