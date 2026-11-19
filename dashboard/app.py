@@ -167,7 +167,11 @@ def calculate_global_shap(model_name):
     """Calculate cached global SHAP values on a fixed training sample."""
     training_path = PROJECT_ROOT / "data" / "processed" / "model_train.csv"
     if not training_path.exists():
-        raise FileNotFoundError(f"Training background data not found: {training_path}")
+        raise FileNotFoundError(
+            "Global SHAP needs data/processed/model_train.csv. "
+            "That file is excluded by the project's .gitignore, so add it "
+            "to the deployed app's data folder before using Global SHAP."
+        )
 
     model = models[model_name]
     training_data = pd.read_csv(training_path)[FEATURE_NAMES]
@@ -531,14 +535,11 @@ if submitted:
                 )
 
                 if not training_path.exists():
-
-                    st.warning(
-                        "The Logistic Regression SHAP explanation "
-                        "needs the training background data. "
-                        "The prediction itself was generated successfully."
+                    raise FileNotFoundError(
+                        "Logistic Regression SHAP needs "
+                        "data/processed/model_train.csv. The prediction "
+                        "was generated, but its explanation is unavailable."
                     )
-
-                    st.stop()
 
                 training_data = pd.read_csv(
                     training_path
