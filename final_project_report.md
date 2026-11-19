@@ -64,20 +64,17 @@ threshold remains the default 0.50 and is not clinically selected.
 
 ## Results
 
-On the held-out set, Logistic Regression achieved ROC-AUC 0.7301, recall
-0.5496, and F1 0.5902; Random Forest achieved ROC-AUC 0.7182, recall 0.6260,
-and F1 0.6212; XGBoost achieved ROC-AUC 0.7272, recall 0.5420, and F1 0.5868.
-Random Forest has the highest observed recall/F1 at this threshold; Logistic
-Regression has the highest ROC-AUC and XGBoost the highest PR-AUC. The full
-comparison and confusion matrices are in `reports/model_evaluation.md`.
+The saved pipelines were rebuilt from the supplied frozen split using five-fold stratified randomized search (seed 42). On the held-out set, Logistic Regression achieved accuracy 0.6854, ROC-AUC 0.7337, recall 0.5649, and F1 0.6091; Random Forest achieved accuracy 0.6722, ROC-AUC 0.7182, recall 0.6336, and F1 0.6264; XGBoost achieved accuracy 0.6689, ROC-AUC 0.7181, recall 0.5496, and F1 0.5902. Random Forest has the highest observed recall/F1 at this threshold; Logistic Regression has the highest ROC-AUC. The threshold remains 0.50 and is not clinically selected. The full comparison and confusion matrices are in `reports/model_evaluation.md` and `reports/model_evaluation.csv`.
 
-Sensitivity analyses remove HbA1c, remove insulin, replace BMI with waist
-circumference, and evaluate an albuminuria-only outcome among participants
-with observed UACR. Their results are in `reports/sensitivity_analysis.csv`.
+Sensitivity analyses remove HbA1c, remove insulin, and replace BMI with waist
+circumference. The notebook's recorded results are in
+`reports/sensitivity_analysis.csv`; they predate the refreshed saved pipelines
+and are exploratory, not reruns of the current models. An albuminuria-only
+outcome analysis is not included in the supplied notebook.
 Subgroup results by age, sex, and race/ethnicity are documented in
 `reports/fairness_analysis.md`.
 
-SHAP global importance ranks insulin status, age, HbA1c, systolic blood
+The modeling notebook's SHAP global analysis ranks insulin status, age, HbA1c, systolic blood
 pressure, and the insulin missingness indicator highest in this fitted Random
 Forest. Individual explanations are available in the dashboard and generated
 report figures. SHAP attributions describe model behavior and do not establish

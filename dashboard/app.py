@@ -162,6 +162,56 @@ def load_models():
     return saved_models
 
 
+@st.cache_data(show_spinner=False)
+def calculate_global_shap(model_name):
+    """Calculate cached global SHAP values on a fixed training sample."""
+    training_path = PROJECT_ROOT / "data" / "processed" / "model_train.csv"
+    if not training_path.exists():
+        raise FileNotFoundError(
+            "Global SHAP needs data/processed/model_train.csv. "
+            "That file is excluded by the project's .gitignore, so add it "
+            "to the deployed app's data folder before using Global SHAP."
+        )
+
+    model = models[model_name]
+    training_data = pd.read_csv(training_path)[FEATURE_NAMES]
+    sample = training_data.sample(
+        n=min(200, len(training_data)), random_state=42
+    )
+    preprocessor = model.named_steps["preprocessor"]
+    classifier = model.named_steps["classifier"]
+    transformed = preprocessor.transform(sample)
+    if hasattr(transformed, "toarray"):
+        transformed = transformed.toarray()
+
+    if model_name in ["Random Forest", "XGBoost"]:
+        explainer = shap.TreeExplainer(classifier)
+        shap_result = explainer(transformed)
+    else:
+        background = preprocessor.transform(
+            training_data.sample(n=min(100, len(training_data)), random_state=7)
+        )
+        if hasattr(background, "toarray"):
+            background = background.toarray()
+        explainer = shap.LinearExplainer(classifier, background)
+        shap_result = explainer(transformed)
+
+    values = np.asarray(shap_result.values)
+    if values.ndim == 3:
+        positive_class_index = list(model.classes_).index(1)
+        values = values[:, :, positive_class_index]
+    if values.ndim != 2:
+        raise ValueError(f"Unexpected SHAP output shape: {values.shape}")
+
+    feature_names = list(preprocessor.get_feature_names_out())
+    importance = np.mean(np.abs(values), axis=0)
+    summary = pd.DataFrame({
+        "Feature": feature_names,
+        "Mean absolute SHAP": importance,
+    }).sort_values("Mean absolute SHAP", ascending=False)
+    return values, transformed, feature_names, summary
+
+
 try:
     models = load_models()
 
@@ -304,7 +354,7 @@ with st.form("renal_ai_input_form"):
 
     submitted = st.form_submit_button(
         "Generate prediction",
-        use_container_width=True
+        width="stretch"
     )
 
 
@@ -420,7 +470,7 @@ if submitted:
 
             st.dataframe(
                 input_data,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True
             )
 
@@ -485,14 +535,11 @@ if submitted:
                 )
 
                 if not training_path.exists():
-
-                    st.warning(
-                        "The Logistic Regression SHAP explanation "
-                        "needs the training background data. "
-                        "The prediction itself was generated successfully."
+                    raise FileNotFoundError(
+                        "Logistic Regression SHAP needs "
+                        "data/processed/model_train.csv. The prediction "
+                        "was generated, but its explanation is unavailable."
                     )
-
-                    st.stop()
 
                 training_data = pd.read_csv(
                     training_path
@@ -587,62 +634,70 @@ if submitted:
 # ============================================================
 
 st.divider()
+st.header("Global SHAP feature importance")
+st.write(
+    "Global SHAP summarizes how much each input feature contributed across "
+    "a fixed sample of training participants. It describes this model's "
+    "behavior, not causal or clinical importance."
+)
+
+if st.toggle("Show global SHAP analysis", value=False, key="show_global_shap"):
+    try:
+        with st.spinner(f"Calculating global SHAP values for {selected_model_name}…"):
+            global_values, global_data, global_names, global_summary = calculate_global_shap(
+                selected_model_name
+            )
+
+        shap_left, shap_right = st.columns(2)
+        with shap_left:
+            st.subheader("Mean absolute contribution")
+            st.bar_chart(
+                global_summary.head(12).sort_values("Mean absolute SHAP"),
+                x="Mean absolute SHAP",
+                y="Feature",
+                horizontal=True,
+            )
+        with shap_right:
+            st.subheader("Contribution direction and spread")
+            shap.summary_plot(
+                global_values,
+                global_data,
+                feature_names=global_names,
+                max_display=12,
+                show=False,
+            )
+            st.pyplot(plt.gcf(), clear_figure=True)
+            plt.close()
+        st.caption(
+            "Computed from up to 200 training participants. Larger mean absolute "
+            "SHAP values indicate greater average influence on the selected "
+            "model output. Feature contributions do not imply causation."
+        )
+    except Exception as global_shap_error:
+        st.warning(f"Global SHAP could not be displayed: {global_shap_error}")
+
+st.divider()
 
 st.header("Held-out model evaluation")
 
 st.write(
-    "Comparison of the three models on the separate "
-    "302-participant held-out test set."
+    "Comparison of the three tuned models on the same "
+    "302-participant held-out test set used for evaluation."
 )
 
-comparison_data = pd.DataFrame(
-    {
-        "Model": [
-            "Logistic Regression",
-            "Random Forest",
-            "XGBoost"
-        ],
-        "Accuracy": [
-            "66.9%",
-            "66.9%",
-            "66.9%"
-        ],
-        "Precision": [
-            "63.7%",
-            "61.7%",
-            "64.0%"
-        ],
-        "Sensitivity": [
-            "55.0%",
-            "62.6%",
-            "54.2%"
-        ],
-        "Specificity": [
-            "76.0%",
-            "70.2%",
-            "76.6%"
-        ],
-        "F1-score": [
-            "59.0%",
-            "62.1%",
-            "58.7%"
-        ],
-        "ROC-AUC": [
-            "0.730",
-            "0.718",
-            "0.727"
-        ],
-        "PR-AUC": [
-            "0.700",
-            "0.684",
-            "0.717"
-        ]
-    }
-)
+evaluation_path = PROJECT_ROOT / "reports" / "model_evaluation.csv"
+evaluation = pd.read_csv(evaluation_path)
+comparison_data = evaluation[
+    ["Model", "Accuracy", "Precision", "Recall", "Specificity", "F1-score", "ROC-AUC", "PR-AUC"]
+].rename(columns={"Recall": "Sensitivity"})
+for metric in ["Accuracy", "Precision", "Sensitivity", "Specificity", "F1-score"]:
+    comparison_data[metric] = comparison_data[metric].map(lambda value: f"{value:.1%}")
+for metric in ["ROC-AUC", "PR-AUC"]:
+    comparison_data[metric] = comparison_data[metric].map(lambda value: f"{value:.3f}")
 
 st.dataframe(
     comparison_data,
-    use_container_width=True,
+    width="stretch",
     hide_index=True
 )
 
