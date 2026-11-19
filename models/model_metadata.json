@@ -1,21 +1,24 @@
 {
-    "models": [
-        "Logistic Regression",
-        "Random Forest",
-        "XGBoost"
-    ],
-    "features": [
-        "RIDAGEYR",
-        "female",
-        "INDFMPIR",
-        "LBXGH",
-        "BMXBMI",
-        "BPXOSY1",
-        "BPXODI1",
-        "smoking",
-        "insulin"
-    ],
-    "target": "kidney_marker",
-    "threshold": 0.5,
-    "threshold_note": "Default threshold; not separately tuned."
+  "models": [
+    "Logistic Regression",
+    "Random Forest",
+    "XGBoost"
+  ],
+  "features": [
+    "RIDAGEYR",
+    "female",
+    "INDFMPIR",
+    "LBXGH",
+    "BMXBMI",
+    "BPXOSY1",
+    "BPXODI1",
+    "smoking",
+    "insulin"
+  ],
+  "target": "kidney_marker",
+  "threshold": 0.5,
+  "threshold_note": "Default threshold; not separately tuned.",
+  "train_rows": 1204,
+  "test_rows": 302,
+  "random_seed": 42
 }

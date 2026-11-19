@@ -213,21 +213,21 @@ The models were evaluated using the following metrics:
 
 | Model | ROC-AUC | Recall | F1-score | PR-AUC |
 |---|---:|---:|---:|---:|
-| Logistic Regression | 0.7301 | 0.5496 | 0.5902 | 0.700 |
-| Random Forest | 0.7182 | 0.6260 | 0.6212 | 0.684 |
-| XGBoost | 0.7272 | 0.5420 | 0.5868 | 0.717 |
+| Logistic Regression | 0.7337 | 0.5649 | 0.6091 | 0.705 |
+| Random Forest | 0.7182 | 0.6336 | 0.6264 | 0.687 |
+| XGBoost | 0.7181 | 0.5496 | 0.5902 | 0.697 |
 
-All three models achieved approximately 66.9% accuracy.
+These values were regenerated from the supplied 1,204/302 split using five-fold stratified randomized search and a default 0.50 threshold. See `reports/model_evaluation.md` and `reports/model_evaluation.csv` for the full comparison and confusion matrices.
 
 ### Model Selection
 
-Random Forest was selected for individual-level SHAP analysis because it achieved the highest recall and F1-score at the default classification threshold of 0.50.
+Random Forest is selected by default for individual-level SHAP analysis because it achieved the highest recall and F1-score at the default classification threshold of 0.50.
 
 Logistic Regression achieved the highest ROC-AUC, while XGBoost achieved the highest PR-AUC.
 
 Model selection was therefore based on the project's evaluation priorities rather than performance on a single metric.
 
-The results indicate moderate predictive performance and require further validation.
+The results indicate moderate predictive performance and require further validation. The threshold was not selected for clinical use.
 
 ## 10. Explainable Artificial Intelligence (SHAP)
 
@@ -324,14 +324,13 @@ This project provided practical experience across the healthcare analytics and m
 
 ## 14. Sensitivity Analysis and Subgroup Evaluation
 
-Sensitivity analyses explored the effect of alternative modelling choices:
+The notebook records sensitivity analyses that explore alternative modelling choices. Its metrics are preserved in `reports/sensitivity_analysis.csv`; those runs predate the refreshed saved pipelines and are exploratory notebook results:
 
 - Removing HbA1c.
 - Removing insulin.
 - Replacing BMI with waist circumference.
-- Considering an albuminuria-only outcome among participants with observed UACR.
 
-Subgroup performance was also explored across age, sex and race/ethnicity groups.
+Subgroup performance was explored across age, sex and race/ethnicity groups in the earlier notebook run. The saved subgroup metrics are historical and have not been recomputed for the refreshed pipelines; see the status note in `reports/fairness_analysis.md`.
 
 These analyses were intended to examine the robustness of model findings and identify areas requiring further investigation.
 
@@ -365,36 +364,45 @@ Potential extensions include:
 renaliq-main/
 │
 ├── data/
-│   └── README.md
+│   ├── interim/
+│   ├── processed/
+│   └── raw/
 │
 ├── models/
 │   ├── all_models.joblib
 │   └── model_metadata.json
 │
 ├── notebooks/
-│   ├── data_preparation.ipynb
-│   ├── exploratory_data_analysis.ipynb
-│   └── modeling.ipynb
+│   ├── 01_data_audit.ipynb
+│   ├── 02_data_integration.ipynb
+│   ├── 03_cohort_and_outcome.ipynb
+│   ├── 04_eda.ipynb
+│   ├── 05_modeling.ipynb
+│   └── 05_modeling_corrected.ipynb
 │
 ├── src/
 │   └── ...
 │
 ├── dashboard/
 │   └── app.py
+├── reports/
+│   ├── model_evaluation.md
+│   ├── model_evaluation.csv
+│   ├── outcome_leakage_audit.md
+│   ├── explainability.md
+│   └── fairness_analysis.md
 │
 ├── requirements.txt
 └── README.md
 ```
-
-*Note: This represents the intended repository organization. Update filenames and folders to match the actual repository.*
 
 ## 18. Installation and Usage
 
 ### Clone the repository
 
 ```bash
-git clone YOUR_GITHUB_REPOSITORY_URL
-cd renaliq-main
+git clone https://github.com/sreekuttysanthosh/renalai.git
+cd renalai
 ```
 
 ### Create a virtual environment

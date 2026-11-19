@@ -1,5 +1,7 @@
 # Subgroup Performance and Fairness Limitations
 
+**Artifact status:** These subgroup metrics were computed for the previously saved Random Forest model and have not been recomputed for the refreshed pipelines in `models/all_models.joblib`. Treat them as historical exploratory results, not current-model evaluation.
+
 ## Evaluation method
 
 The saved Random Forest pipeline was evaluated on the held-out test set at the project's default classification threshold of 0.50. The model test data contained 302 adults. Demographic attributes were joined to the model test rows by `SEQN`; all 302 rows matched one-to-one.
