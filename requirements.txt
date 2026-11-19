@@ -1,26 +1,20 @@
-# Jupyter environment
+# Used by the notebooks
 jupyter
 ipykernel
 
-# Data handling
-pandas
-numpy
-scipy
-
-# Data visualization
-matplotlib
+# Data handling and visualizations
+pandas==2.2.3
+numpy==2.2.6
+scipy==1.18.1
+matplotlib==3.11.1
 seaborn
 plotly
 
-# Machine learning
+# Model artifact compatibility (trained with these versions)
 scikit-learn==1.6.1
-xgboost
+xgboost==3.4.1
+shap==0.54.1
+joblib==1.6.0
 
-# Explainable AI
-shap
-
-# Model saving and loading
-joblib
-
-# Web application
-streamlit
+# Streamlit dashboard
+streamlit==1.63.0
