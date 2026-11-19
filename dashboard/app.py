@@ -87,7 +87,13 @@ st.markdown(
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
-MODEL_PATH = PROJECT_ROOT / "models" / "all_models.joblib"
+# This bundle was exported with the environment used by the dashboard.
+# The older all_models.joblib contains an XGBoost serialization that cannot
+# be deserialized by the installed XGBoost version.
+MODEL_PATHS = (
+    PROJECT_ROOT / "models" / "all_models_compatible.joblib",
+    PROJECT_ROOT / "models" / "all_models.joblib",
+)
 
 THRESHOLD = 0.50
 
@@ -109,6 +115,13 @@ MODEL_NAMES = [
     "XGBoost"
 ]
 
+GLOBAL_SHAP_DATA_PATH = (
+    PROJECT_ROOT
+    / "data"
+    / "processed"
+    / "model_test.csv"
+)
+
 
 # ============================================================
 # 4. LOAD ALL THREE SAVED MODEL PIPELINES
@@ -117,12 +130,24 @@ MODEL_NAMES = [
 @st.cache_resource
 def load_models():
 
-    if not MODEL_PATH.exists():
-        raise FileNotFoundError(
-            f"Model file not found: {MODEL_PATH}"
-        )
+    saved_models = None
+    load_errors = []
 
-    saved_models = joblib.load(MODEL_PATH)
+    for model_path in MODEL_PATHS:
+        if not model_path.exists():
+            load_errors.append(f"Missing {model_path}")
+            continue
+
+        try:
+            saved_models = joblib.load(model_path)
+            break
+        except Exception as error:
+            load_errors.append(f"Could not load {model_path}: {error}")
+
+    if saved_models is None:
+        raise FileNotFoundError(
+            "No usable model bundle was found. " + "; ".join(load_errors)
+        )
 
     if not isinstance(saved_models, dict):
         raise ValueError(
@@ -154,7 +179,8 @@ def load_models():
                 f"{name} does not support probability prediction."
             )
 
-        if list(model.feature_names_in_) != FEATURE_NAMES:
+        model_features = getattr(model, "feature_names_in_", None)
+        if model_features is None or list(model_features) != FEATURE_NAMES:
             raise ValueError(
                 f"{name} does not expect the correct nine features."
             )
@@ -170,11 +196,89 @@ except Exception as error:
     st.error(f"Could not load the model pipelines: {error}")
 
     st.info(
-        "Check that models/all_models.joblib exists and contains "
-        "the three verified fitted pipelines."
+        "Place a compatible bundle at "
+        "models/all_models_compatible.joblib or "
+        "models/all_models.joblib."
     )
 
     st.stop()
+
+
+@st.cache_data(show_spinner=False)
+def calculate_global_shap(model_name):
+    """Calculate positive-class SHAP values for the held-out dataset."""
+
+    if not GLOBAL_SHAP_DATA_PATH.exists():
+        raise FileNotFoundError(
+            "Global SHAP needs data/processed/model_test.csv. "
+            "That file is excluded by the project's .gitignore, so add it "
+            "to the deployed app's data folder before using Global SHAP."
+        )
+
+    model = models[model_name]
+    preprocessor = model.named_steps["preprocessor"]
+    classifier = model.named_steps["classifier"]
+
+    test_data = pd.read_csv(GLOBAL_SHAP_DATA_PATH)
+    missing_features = [
+        name for name in FEATURE_NAMES
+        if name not in test_data.columns
+    ]
+
+    if missing_features:
+        raise ValueError(
+            "Global SHAP data is missing features: "
+            + ", ".join(missing_features)
+        )
+
+    transformed_data = preprocessor.transform(
+        test_data[FEATURE_NAMES]
+    )
+
+    if hasattr(transformed_data, "toarray"):
+        transformed_data = transformed_data.toarray()
+
+    feature_names = preprocessor.get_feature_names_out()
+    positive_class_index = list(model.classes_).index(1)
+
+    if model_name in ["Random Forest", "XGBoost"]:
+        explainer = shap.TreeExplainer(classifier)
+    else:
+        # LinearExplainer needs representative training data in the
+        # transformed feature space, not the raw categorical columns.
+        train_data = pd.read_csv(
+            PROJECT_ROOT
+            / "data"
+            / "processed"
+            / "model_train.csv"
+        )
+        background = preprocessor.transform(
+            train_data[FEATURE_NAMES]
+        )
+
+        if hasattr(background, "toarray"):
+            background = background.toarray()
+
+        explainer = shap.LinearExplainer(
+            classifier,
+            background
+        )
+
+    explanation = explainer(transformed_data)
+    values = np.asarray(explanation.values)
+
+    # SHAP returns (rows, features, classes) for some classifiers and
+    # (rows, features) for others. Global importance must use the
+    # positive class consistently across all three saved pipelines.
+    if values.ndim == 3:
+        values = values[:, :, positive_class_index]
+
+    if values.ndim != 2:
+        raise ValueError(
+            f"Unexpected global SHAP shape: {values.shape}"
+        )
+
+    return values, transformed_data, feature_names
 
 
 # ============================================================
@@ -304,7 +408,7 @@ with st.form("renal_ai_input_form"):
 
     submitted = st.form_submit_button(
         "Generate prediction",
-        use_container_width=True
+        width="stretch"
     )
 
 
@@ -420,7 +524,7 @@ if submitted:
 
             st.dataframe(
                 input_data,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True
             )
 
@@ -485,14 +589,11 @@ if submitted:
                 )
 
                 if not training_path.exists():
-
-                    st.warning(
-                        "The Logistic Regression SHAP explanation "
-                        "needs the training background data. "
-                        "The prediction itself was generated successfully."
+                    raise FileNotFoundError(
+                        "Logistic Regression SHAP needs "
+                        "data/processed/model_train.csv. The prediction "
+                        "was generated, but its explanation is unavailable."
                     )
-
-                    st.stop()
 
                 training_data = pd.read_csv(
                     training_path
@@ -583,7 +684,80 @@ if submitted:
 
 
 # ============================================================
-# 12. MODEL COMPARISON
+# 12. GLOBAL SHAP EXPLANATION
+# ============================================================
+
+st.divider()
+
+st.header("Global model explanation")
+
+st.write(
+    "This view summarizes how the selected model uses features "
+    "across the held-out test participants. It is different from "
+    "the individual explanation above, which describes one input."
+)
+
+try:
+
+    with st.spinner("Calculating global SHAP values..."):
+
+        global_values, global_data, global_feature_names = (
+            calculate_global_shap(selected_model_name)
+        )
+
+    importance = pd.DataFrame(
+        {
+            "Feature": global_feature_names,
+            "Mean absolute SHAP value": np.mean(
+                np.abs(global_values),
+                axis=0
+            )
+        }
+    ).sort_values(
+        by="Mean absolute SHAP value",
+        ascending=False
+    ).reset_index(drop=True)
+
+    importance.index = importance.index + 1
+
+    st.dataframe(
+        importance.round(4),
+        width="stretch",
+        hide_index=False
+    )
+
+    shap.summary_plot(
+        global_values,
+        global_data,
+        feature_names=global_feature_names,
+        max_display=10,
+        show=False
+    )
+
+    st.pyplot(
+        plt.gcf(),
+        clear_figure=True
+    )
+
+    plt.close()
+
+    st.caption(
+        "Features are ranked by their average absolute contribution "
+        "to the selected model's positive-class output. This describes "
+        "model behavior, not clinical causation."
+    )
+
+except Exception as global_shap_error:
+
+    st.warning(
+        "The prediction and local explanation are available, but the "
+        "global SHAP explanation could not be displayed: "
+        f"{global_shap_error}"
+    )
+
+
+# ============================================================
+# 13. MODEL COMPARISON
 # ============================================================
 
 st.divider()
@@ -642,7 +816,7 @@ comparison_data = pd.DataFrame(
 
 st.dataframe(
     comparison_data,
-    use_container_width=True,
+    width="stretch",
     hide_index=True
 )
 
@@ -654,7 +828,7 @@ st.caption(
 
 
 # ============================================================
-# 13. ABOUT THE PROJECT
+# 14. ABOUT THE PROJECT
 # ============================================================
 
 st.divider()
@@ -700,7 +874,7 @@ st.write(
 
 
 # ============================================================
-# 14. LIMITATIONS AND DISCLAIMER
+# 15. LIMITATIONS AND DISCLAIMER
 # ============================================================
 
 st.divider()
